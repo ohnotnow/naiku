@@ -1,0 +1,10 @@
+.ait/
+.ant/
+
+# Xcode user state and build output
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+VISION.txt

@@ -1,0 +1,77 @@
+name: Naiku
+
+options:
+  bundleIdPrefix: dev.naiku
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CLANG_ENABLE_MODULES: YES
+    CODE_SIGN_STYLE: Automatic
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 0.1.0
+
+targets:
+  Naiku:
+    type: application
+    platform: macOS
+    sources:
+      - path: Naiku
+        excludes:
+          - Info.plist
+          - Naiku.entitlements
+    info:
+      path: Naiku/Info.plist
+      properties:
+        CFBundleDisplayName: Naiku
+        CFBundleName: Naiku
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
+        LSApplicationCategoryType: public.app-category.entertainment
+        LSUIElement: true
+        NSHumanReadableCopyright: "Copyright © 2026 Naiku contributors"
+        NSPrincipalClass: NSApplication
+    entitlements:
+      path: Naiku/Naiku.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PRODUCT_BUNDLE_IDENTIFIER: dev.naiku.Naiku
+        PRODUCT_NAME: Naiku
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+
+  NaikuTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/NaikuTests
+    dependencies:
+      - target: Naiku
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.naiku.NaikuTests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Naiku:
+    build:
+      targets:
+        Naiku: all
+        NaikuTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - NaikuTests
+    archive:
+      config: Release

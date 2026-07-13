@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v4
+
+      - name: Build and test
+        run: |
+          xcodebuild \
+            -project Naiku.xcodeproj \
+            -scheme Naiku \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            test \
+            CODE_SIGNING_ALLOWED=NO
