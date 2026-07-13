@@ -4,12 +4,20 @@ import AppKit
 final class PetWindowController: NSWindowController {
     static let petSize = NSSize(width: 72, height: 72)
     static let frameInterval: TimeInterval = 1.0 / 30.0
+    static let terrainRefreshInterval: TimeInterval = 0.5
 
     private var motionTimer: Timer?
+    private var terrainTimer: Timer?
+    private var behaviorEngine: PeripheralBehaviorEngine
+    private var directChatIntent = DirectChatIntentTracker()
     private let reduceMotionEnabled: @MainActor () -> Bool
+    private let terrainProvider: WindowTerrainProviding
+    private let decisionProvider: @MainActor () -> PeripheralDecisionValues
     private(set) var isPaused = false
     private(set) var isInteractionActive = false
     private(set) var isReducedMotionActive = false
+    private(set) var terrainSnapshot = TerrainSnapshot(surfaces: [])
+    private(set) var isDirectChatArmed = false
 
     var onPetClick: (@MainActor () -> Void)? {
         didSet { spriteView?.onClick = onPetClick }
@@ -19,11 +27,19 @@ final class PetWindowController: NSWindowController {
 
     init(
         screen: NSScreen? = NSScreen.main,
+        terrainProvider: WindowTerrainProviding? = nil,
+        behaviorEngine: PeripheralBehaviorEngine = PeripheralBehaviorEngine(),
+        decisionProvider: @escaping @MainActor () -> PeripheralDecisionValues = {
+            PeripheralDecisionValues.random()
+        },
         reduceMotionEnabled: @escaping @MainActor () -> Bool = {
             NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         }
     ) {
         self.reduceMotionEnabled = reduceMotionEnabled
+        self.terrainProvider = terrainProvider ?? CoreGraphicsWindowTerrainProvider()
+        self.behaviorEngine = behaviorEngine
+        self.decisionProvider = decisionProvider
         let panel = PetPanel(
             contentRect: NSRect(origin: .zero, size: Self.petSize),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -36,7 +52,7 @@ final class PetWindowController: NSWindowController {
         panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isMovable = false
-        panel.ignoresMouseEvents = false
+        panel.ignoresMouseEvents = true
         panel.level = .floating
 
         // Naiku follows the user between normal Spaces and may appear beside a
@@ -71,7 +87,9 @@ final class PetWindowController: NSWindowController {
     }
 
     func hide() {
+        disarmDirectChat()
         spriteView?.stopAnimating()
+        stopTerrainTimer()
         window?.orderOut(nil)
     }
 
@@ -79,6 +97,8 @@ final class PetWindowController: NSWindowController {
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         stopMotionTimer()
+        stopTerrainTimer()
+        disarmDirectChat()
         spriteView?.stopAnimating()
         window?.orderOut(nil)
         window?.contentView = nil
@@ -93,6 +113,7 @@ final class PetWindowController: NSWindowController {
     }
 
     func beginInteraction() {
+        disarmDirectChat()
         guard !isInteractionActive else { return }
         isInteractionActive = true
         applyRunningState()
@@ -113,7 +134,11 @@ final class PetWindowController: NSWindowController {
             displays: availableDisplays,
             fallback: fallbackBounds
         )
-        window.setFrameOrigin(MotionEngine.clamp(origin: window.frame.origin, petSize: window.frame.size, to: bounds))
+        window.setFrameOrigin(DesktopGeometry.clampedOrigin(
+            window.frame.origin,
+            petSize: window.frame.size,
+            to: bounds
+        ))
     }
 
     func refreshAccessibilityPreferences() {
@@ -144,19 +169,47 @@ final class PetWindowController: NSWindowController {
         motionTimer = timer
     }
 
+    private func startTerrainTimerIfNeeded() {
+        guard terrainTimer == nil, !isEffectivelyPaused, window?.isVisible == true else { return }
+
+        refreshTerrain()
+        let timer = Timer(
+            timeInterval: Self.terrainRefreshInterval,
+            target: self,
+            selector: #selector(refreshTerrain),
+            userInfo: nil,
+            repeats: true
+        )
+        RunLoop.main.add(timer, forMode: .common)
+        terrainTimer = timer
+    }
+
     private func stopMotionTimer() {
         motionTimer?.invalidate()
         motionTimer = nil
     }
 
+    private func stopTerrainTimer() {
+        terrainTimer?.invalidate()
+        terrainTimer = nil
+    }
+
+    @objc
+    func refreshTerrain() {
+        terrainSnapshot = terrainProvider.snapshot(petSize: Self.petSize)
+    }
+
     private func applyRunningState() {
         isReducedMotionActive = reduceMotionEnabled()
         if isEffectivelyPaused || isReducedMotionActive {
+            disarmDirectChat()
             stopMotionTimer()
+            stopTerrainTimer()
             spriteView?.stopAnimating()
             spriteView?.resetToIdle()
         } else {
             spriteView?.startAnimating()
+            startTerrainTimerIfNeeded()
             startMotionTimerIfNeeded()
         }
     }
@@ -165,21 +218,36 @@ final class PetWindowController: NSWindowController {
     private func advanceMotion() {
         guard let window else { return }
 
-        let target = NSEvent.mouseLocation
-        let step = MotionEngine.step(
+        let pointer = NSEvent.mouseLocation
+        let step = behaviorEngine.step(
             from: window.frame.origin,
-            toward: target,
+            pointer: pointer,
             elapsed: Self.frameInterval,
             petSize: window.frame.size,
-            within: DesktopGeometry.visibleBounds(containing: target)
+            terrain: terrainSnapshot,
+            decision: decisionProvider()
         )
         window.setFrameOrigin(step.origin)
-        spriteView?.update(direction: step.direction, isMoving: step.isMoving, elapsed: Self.frameInterval)
+        let localPointer = CGPoint(
+            x: pointer.x - step.origin.x,
+            y: pointer.y - step.origin.y
+        )
+        let pointerIsOnCat = spriteView?.containsCat(at: localPointer) == true
+        isDirectChatArmed = directChatIntent.update(
+            pointer: pointer,
+            petOrigin: step.origin,
+            isPointerOnCat: pointerIsOnCat,
+            isPetStationary: step.activity.isStationary,
+            elapsed: Self.frameInterval
+        )
+        window.ignoresMouseEvents = !isDirectChatArmed
+        spriteView?.update(renderState: isDirectChatArmed ? .flourishing : step.renderState)
     }
 
     @objc
     private func screenParametersDidChange() {
         ensureVisible()
+        refreshTerrain()
     }
 
     @objc
@@ -189,5 +257,11 @@ final class PetWindowController: NSWindowController {
 
     private var spriteView: PetSpriteView? {
         window?.contentView as? PetSpriteView
+    }
+
+    private func disarmDirectChat() {
+        directChatIntent.reset()
+        isDirectChatArmed = false
+        window?.ignoresMouseEvents = true
     }
 }

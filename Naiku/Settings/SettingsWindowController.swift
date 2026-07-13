@@ -59,7 +59,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             displays: DesktopGeometry.currentDisplays,
             fallback: NSScreen.main?.visibleFrame ?? .zero
         )
-        window.setFrameOrigin(MotionEngine.clamp(origin: window.frame.origin, petSize: window.frame.size, to: bounds))
+        window.setFrameOrigin(DesktopGeometry.clampedOrigin(window.frame.origin, petSize: window.frame.size, to: bounds))
     }
 
     @objc

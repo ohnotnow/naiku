@@ -13,6 +13,7 @@ final class PetWindowControllerTests: XCTestCase {
         XCTAssertFalse(panel.hasShadow)
         XCTAssertFalse(panel.canBecomeKey)
         XCTAssertFalse(panel.canBecomeMain)
+        XCTAssertTrue(panel.ignoresMouseEvents)
         XCTAssertEqual(panel.level, .floating)
         XCTAssertTrue(panel.styleMask.contains(.borderless))
         XCTAssertTrue(panel.styleMask.contains(.nonactivatingPanel))

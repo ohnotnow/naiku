@@ -6,27 +6,35 @@ import XCTest
 final class StatusMenuControllerTests: XCTestCase {
     func testMenuExposesLifecycleActionsAndTogglesPause() throws {
         var observedPause: Bool?
+        var chatCount = 0
         var settingsCount = 0
         var quitCount = 0
         let controller = StatusMenuController(
+            onShowChat: { chatCount += 1 },
             onPauseChanged: { observedPause = $0 },
             onShowSettings: { settingsCount += 1 },
             onQuit: { quitCount += 1 }
         )
 
-        XCTAssertEqual(controller.menu.items.map(\.title), ["Pause Naiku", "Settings…", "", "Quit Naiku"])
+        XCTAssertEqual(
+            controller.menu.items.map(\.title),
+            ["Chat with Naiku…", "Pause Naiku", "Settings…", "", "Quit Naiku"]
+        )
 
         controller.menu.performActionForItem(at: 0)
+        XCTAssertEqual(chatCount, 1)
+
+        controller.menu.performActionForItem(at: 1)
         XCTAssertTrue(controller.isPaused)
         XCTAssertEqual(observedPause, true)
-        XCTAssertEqual(controller.menu.item(at: 0)?.title, "Resume Naiku")
+        XCTAssertEqual(controller.menu.item(at: 1)?.title, "Resume Naiku")
 
-        controller.menu.performActionForItem(at: 0)
+        controller.menu.performActionForItem(at: 1)
         XCTAssertFalse(controller.isPaused)
         XCTAssertEqual(observedPause, false)
 
-        controller.menu.performActionForItem(at: 1)
-        controller.menu.performActionForItem(at: 3)
+        controller.menu.performActionForItem(at: 2)
+        controller.menu.performActionForItem(at: 4)
         XCTAssertEqual(settingsCount, 1)
         XCTAssertEqual(quitCount, 1)
 

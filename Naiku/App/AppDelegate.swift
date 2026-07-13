@@ -35,11 +35,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.setProviderChangeHandler { [weak chatSession] in
             chatSession?.newConversation()
         }
-        petController.onPetClick = { [weak petController, weak chatController] in
+        let showChat: @MainActor () -> Void = { [weak petController, weak chatController] in
             petController?.beginInteraction()
             chatController?.show(near: petController?.window?.frame)
         }
+        petController.onPetClick = showChat
         let statusController = StatusMenuController(
+            onShowChat: showChat,
             onPauseChanged: { [weak petController] isPaused in
                 petController?.setPaused(isPaused)
             },

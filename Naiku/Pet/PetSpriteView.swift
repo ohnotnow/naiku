@@ -5,7 +5,6 @@ import AppKit
 @MainActor
 final class PetSpriteView: NSView {
     private let library: PetAnimationLibrary?
-    private var behavior = PetBehaviorStateMachine()
     private var animationTimer: Timer?
 
     private(set) var renderState = PetRenderState.idle
@@ -20,10 +19,7 @@ final class PetSpriteView: NSView {
     init(frame frameRect: NSRect, library: PetAnimationLibrary?) {
         self.library = library
         super.init(frame: frameRect)
-        setAccessibilityElement(true)
-        setAccessibilityRole(.button)
-        setAccessibilityLabel("Naiku")
-        setAccessibilityHelp("Open chat with Naiku")
+        setAccessibilityElement(false)
     }
 
     @available(*, unavailable)
@@ -36,22 +32,19 @@ final class PetSpriteView: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard bounds.contains(point), visibleCatRegion.contains(point) else { return nil }
-        return self
+        containsCat(at: point) ? self : nil
     }
 
     override func mouseDown(with event: NSEvent) {
+        guard containsCat(at: convert(event.locationInWindow, from: nil)) else { return }
         onClick?()
     }
 
-    override func accessibilityPerformPress() -> Bool {
-        guard let onClick else { return false }
-        onClick()
-        return true
+    func containsCat(at point: CGPoint) -> Bool {
+        bounds.contains(point) && visibleCatRegion.contains(point)
     }
 
-    func update(direction: MovementDirection, isMoving: Bool, elapsed: TimeInterval = 1.0 / 30.0) {
-        let nextState = behavior.update(direction: direction, isMoving: isMoving, elapsed: elapsed)
+    func update(renderState nextState: PetRenderState) {
         if nextState.animationID != renderState.animationID {
             frameIndex = 0
             rescheduleAnimationIfNeeded()
@@ -61,7 +54,6 @@ final class PetSpriteView: NSView {
     }
 
     func resetToIdle() {
-        behavior.reset()
         if renderState.animationID != PetAnimationID.idle {
             frameIndex = 0
         }

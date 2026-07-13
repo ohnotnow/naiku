@@ -1,18 +1,21 @@
 # Naiku
 
-Naiku is a tiny native macOS cat that potters after your pointer. Click it and you can chat using either Anthropic or OpenAI.
+Naiku is a tiny native macOS cat that inhabits the edges of your desktop. It sits and strolls along window tops, occasionally jumps between them, and can chat using either Anthropic or OpenAI.
 
 The cat is perfectly happy without an API key. Chat is optional and uses your own provider account. Keys live in macOS Keychain, the current conversation stays in memory, and there are no analytics or backend services tucked away somewhere.
 
 ## What it does
 
-- Follows the pointer across displays in a transparent floating window.
+- Rests, stretches, takes short strolls and sometimes settles in for a longer nap along exposed window tops.
+- Wanders and changes windows independently, while occasionally showing a little interest in the pointer.
+- Jumps between safe surfaces and falls back to a screen edge when no suitable title bar is available.
+- Lets ordinary clicks pass through the roaming cat. Move the pointer onto a stationary Naiku and pause until the paw-wave cue if you intend to click the cat and open chat.
 - Sits still while the chat panel is open, then carries on as before when you close it.
 - Chats through Anthropic's Messages API or OpenAI's Responses API.
 - Keeps the two provider keys separate and lets you edit each model ID.
 - Has pause, settings and quit controls in the menu bar.
 - Stays put when macOS Reduce Motion is enabled.
-- Blinks, breathes and settles into a patient waiting loop when the pointer stops.
+- Blinks, breathes and settles into a patient waiting loop between decisions.
 
 Naiku's orange cat uses a complete, data-driven sprite atlas with separate rightward, leftward and vertical running cycles. A second cat is still an idea for later.
 
@@ -39,7 +42,7 @@ xcodebuild \
   build
 ```
 
-Naiku is a menu-bar app, so you will not see it in the Dock. The first launch opens a non-modal settings window with the optional chat setup. Close it and the cat will start roaming; click the cat whenever you want to chat.
+Naiku is a menu-bar app, so you will not see it in the Dock. The first launch opens a non-modal settings window with the optional chat setup. Close it and the cat will start roaming. To chat, briefly hover over a stationary Naiku until the cat waves, then click; **Chat with Naiku…** in the cat menu is always available too.
 
 If you edit `project.yml`, regenerate the project before building:
 
@@ -72,7 +75,9 @@ The app runs in the macOS App Sandbox with outbound network access. Its current 
 
 Naiku asks macOS to appear on every ordinary Space and alongside full-screen apps. macOS still controls window ordering, so an exclusive full-screen app or an unusual window-management setup can temporarily hide the cat or chat panel.
 
-It copes with displays that have negative coordinates or sit above or below the primary display. Disconnect or rearrange a display and Naiku moves its windows back onto the nearest available one. Other application windows do not yet act as platforms or terrain.
+It copes with displays that have negative coordinates or sit above or below the primary display. Disconnect or rearrange a display and Naiku recovers onto an available surface. Window bounds come from required Core Graphics geometry; Naiku does not read window titles or request Screen Recording or Accessibility permission.
+
+Naiku uses exposed horizontal window tops rather than semantic title-bar controls. Fully maximised windows do not leave enough safe room above their content, so Naiku uses a screen-edge fallback instead. Climbing window sides and understanding particular applications are ideas for later.
 
 Chat is deliberately non-streaming in v0.1. There is no saved transcript, tool use, voice mode, launch-at-login option, automatic updater or packaged binary release yet.
 

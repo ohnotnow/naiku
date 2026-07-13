@@ -94,7 +94,7 @@ final class ChatPanelController: NSWindowController, NSWindowDelegate {
         if origin.x + size.width > visibleFrame.maxX {
             origin.x = petFrame.minX - size.width - 12
         }
-        origin = MotionEngine.clamp(origin: origin, petSize: size, to: visibleFrame)
+        origin = DesktopGeometry.clampedOrigin(origin, petSize: size, to: visibleFrame)
         window.setFrameOrigin(origin)
     }
 
@@ -106,6 +106,6 @@ final class ChatPanelController: NSWindowController, NSWindowDelegate {
             displays: DesktopGeometry.currentDisplays,
             fallback: NSScreen.main?.visibleFrame ?? .zero
         )
-        window.setFrameOrigin(MotionEngine.clamp(origin: window.frame.origin, petSize: window.frame.size, to: bounds))
+        window.setFrameOrigin(DesktopGeometry.clampedOrigin(window.frame.origin, petSize: window.frame.size, to: bounds))
     }
 }

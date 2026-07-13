@@ -10,15 +10,8 @@ final class PetRenderStateTests: XCTestCase {
         XCTAssertEqual(PetRenderState.moving(.north).animationID, .running)
         XCTAssertEqual(PetRenderState.idle.animationID, .idle)
         XCTAssertEqual(PetRenderState.resting.animationID, .waiting)
-    }
-
-    func testRestingTransitionIsDeterministic() {
-        var behavior = PetBehaviorStateMachine()
-
-        XCTAssertEqual(behavior.update(direction: .idle, isMoving: false, elapsed: 3.9), .idle)
-        XCTAssertEqual(behavior.update(direction: .idle, isMoving: false, elapsed: 0.1), .resting)
-        XCTAssertEqual(behavior.update(direction: .east, isMoving: true, elapsed: 0.1), .moving(.east))
-        XCTAssertEqual(behavior.update(direction: .idle, isMoving: false, elapsed: 0.1), .idle)
+        XCTAssertEqual(PetRenderState.flourishing.animationID, .waving)
+        XCTAssertEqual(PetRenderState.jumping.animationID, .jumping)
     }
 
     func testManifestDecodesAndCalculatesTopOriginRows() throws {
@@ -34,29 +27,30 @@ final class PetRenderStateTests: XCTestCase {
         let frame = NSRect(origin: .zero, size: PetWindowController.petSize)
         let view = PetSpriteView(frame: frame, library: try makeLibrary())
 
-        view.update(direction: .east, isMoving: true)
+        view.update(renderState: .moving(.east))
         view.advanceFrame()
         XCTAssertEqual(view.frameIndex, 1)
 
-        view.update(direction: .northEast, isMoving: true)
+        view.update(renderState: .moving(.northEast))
         XCTAssertEqual(view.frameIndex, 1)
 
-        view.update(direction: .west, isMoving: true)
+        view.update(renderState: .moving(.west))
         XCTAssertEqual(view.frameIndex, 0)
     }
 
-    func testOnlyTheVisibleCatRegionAcceptsClicks() throws {
+    func testVisibleCatRegionCanHandleAnArmedClick() throws {
         let frame = NSRect(origin: .zero, size: PetWindowController.petSize)
         let view = PetSpriteView(frame: frame, library: try makeLibrary())
         var clickCount = 0
         view.onClick = { clickCount += 1 }
 
-        XCTAssertTrue(view.hitTest(NSPoint(x: 36, y: 40)) === view)
-        XCTAssertNil(view.hitTest(NSPoint(x: 1, y: 1)))
+        XCTAssertTrue(view.containsCat(at: CGPoint(x: 36, y: 40)))
+        XCTAssertFalse(view.containsCat(at: CGPoint(x: 1, y: 1)))
+        XCTAssertFalse(view.isAccessibilityElement())
 
         let event = try XCTUnwrap(NSEvent.mouseEvent(
             with: .leftMouseDown,
-            location: NSPoint(x: 36, y: 40),
+            location: CGPoint(x: 36, y: 40),
             modifierFlags: [],
             timestamp: 0,
             windowNumber: 0,
@@ -67,11 +61,6 @@ final class PetRenderStateTests: XCTestCase {
         ))
         view.mouseDown(with: event)
         XCTAssertEqual(clickCount, 1)
-
-        XCTAssertEqual(view.accessibilityRole(), .button)
-        XCTAssertEqual(view.accessibilityLabel(), "Naiku")
-        XCTAssertTrue(view.accessibilityPerformPress())
-        XCTAssertEqual(clickCount, 2)
     }
 
     private func makeLibrary() throws -> PetAnimationLibrary {

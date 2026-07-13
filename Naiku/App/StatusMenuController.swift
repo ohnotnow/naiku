@@ -3,6 +3,7 @@ import AppKit
 @MainActor
 final class StatusMenuController: NSObject {
     private let statusBar: NSStatusBar
+    private let onShowChat: @MainActor () -> Void
     private let onPauseChanged: @MainActor (Bool) -> Void
     private let onShowSettings: @MainActor () -> Void
     private let onQuit: @MainActor () -> Void
@@ -19,11 +20,13 @@ final class StatusMenuController: NSObject {
 
     init(
         statusBar: NSStatusBar = .system,
+        onShowChat: @escaping @MainActor () -> Void,
         onPauseChanged: @escaping @MainActor (Bool) -> Void,
         onShowSettings: @escaping @MainActor () -> Void,
         onQuit: @escaping @MainActor () -> Void
     ) {
         self.statusBar = statusBar
+        self.onShowChat = onShowChat
         self.onPauseChanged = onPauseChanged
         self.onShowSettings = onShowSettings
         self.onQuit = onQuit
@@ -48,6 +51,14 @@ final class StatusMenuController: NSObject {
     }
 
     private func configureMenu() {
+        let chatItem = NSMenuItem(
+            title: "Chat with Naiku…",
+            action: #selector(showChat),
+            keyEquivalent: ""
+        )
+        chatItem.target = self
+        menu.addItem(chatItem)
+
         pauseMenuItem.target = self
         menu.addItem(pauseMenuItem)
 
@@ -70,6 +81,11 @@ final class StatusMenuController: NSObject {
         menu.addItem(quitItem)
 
         statusItem.menu = menu
+    }
+
+    @objc
+    private func showChat() {
+        onShowChat()
     }
 
     @objc
