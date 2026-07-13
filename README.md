@@ -4,7 +4,7 @@ Naiku is a tiny native macOS cat that inhabits the edges of your desktop. It sit
 
 The cat is perfectly happy without an API key. Chat is optional and uses your own provider account. Keys live in macOS Keychain, the current conversation stays in memory, and there are no analytics or backend services tucked away somewhere.
 
-![screenshot](scrrenshot.png)
+![screenshot](screenshot.png)
 
 ## What it does
 
