@@ -8,6 +8,7 @@ enum NaikuMain {
         let delegate = AppDelegate()
 
         application.delegate = delegate
+        application.mainMenu = ApplicationMenu.make()
         application.setActivationPolicy(.accessory)
         application.run()
     }
