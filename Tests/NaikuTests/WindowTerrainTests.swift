@@ -131,7 +131,7 @@ final class WindowTerrainTests: XCTestCase {
 
         XCTAssertEqual(stub.snapshotCount, 1)
         XCTAssertEqual(controller.terrainSnapshot, stub.result)
-        XCTAssertEqual(PetWindowController.terrainRefreshInterval, 1.0)
+        XCTAssertEqual(PetWindowController.terrainRefreshInterval, 2.0)
         XCTAssertGreaterThan(PetWindowController.terrainRefreshInterval, PetWindowController.frameInterval)
         controller.tearDown()
     }

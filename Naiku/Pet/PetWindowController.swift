@@ -3,9 +3,9 @@ import AppKit
 @MainActor
 final class PetWindowController: NSWindowController {
     static let petSize = NSSize(width: 72, height: 72)
-    static let frameInterval: TimeInterval = 1.0 / 30.0
-    static let stationaryFrameInterval: TimeInterval = 1.0 / 5.0
-    static let terrainRefreshInterval: TimeInterval = 1.0
+    static let frameInterval: TimeInterval = 1.0 / 15.0
+    static let stationaryFrameInterval: TimeInterval = 1.0 / 2.0
+    static let terrainRefreshInterval: TimeInterval = 2.0
 
     private var motionTimer: Timer?
     private var terrainTimer: Timer?

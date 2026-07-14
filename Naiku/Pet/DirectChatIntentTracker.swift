@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 struct DirectChatIntentTracker: Sendable, Equatable {
-    var dwellDuration: TimeInterval = 0.6
+    var dwellDuration: TimeInterval = 0.5
     var movementThreshold: CGFloat = 0.5
 
     private(set) var isArmed = false
@@ -12,7 +12,7 @@ struct DirectChatIntentTracker: Sendable, Equatable {
     private var previousPetOrigin: CGPoint?
     private var previousPointerWasOnCat = false
 
-    init(dwellDuration: TimeInterval = 0.6, movementThreshold: CGFloat = 0.5) {
+    init(dwellDuration: TimeInterval = 0.5, movementThreshold: CGFloat = 0.5) {
         self.dwellDuration = dwellDuration
         self.movementThreshold = movementThreshold
     }

@@ -138,6 +138,8 @@ final class PetWindowControllerTests: XCTestCase {
 
         XCTAssertEqual(PetWindowController.motionInterval(for: rest), PetWindowController.stationaryFrameInterval)
         XCTAssertEqual(PetWindowController.motionInterval(for: stroll), PetWindowController.frameInterval)
+        XCTAssertEqual(PetWindowController.stationaryFrameInterval, 0.5)
+        XCTAssertEqual(PetWindowController.frameInterval, 1.0 / 15.0)
         XCTAssertGreaterThan(PetWindowController.stationaryFrameInterval, PetWindowController.frameInterval)
     }
 }
