@@ -41,10 +41,17 @@ xcodebuild \
   -scheme Naiku \
   -configuration Debug \
   -destination 'platform=macOS' \
+  -derivedDataPath build \
   build
 ```
 
-Naiku is a menu-bar app, so you will not see it in the Dock. The first launch opens a non-modal settings window with the optional chat setup. Close it and the cat will start roaming. To chat, briefly hover over a stationary Naiku until the cat waves, then click; **Chat with Naiku…** in the cat menu is always available too.
+The built app ends up at `build/Build/Products/Debug/Naiku.app`. Launch it with:
+
+```sh
+open build/Build/Products/Debug/Naiku.app
+```
+
+Naiku is a menu-bar app, so nothing appears in the Dock — look for the cat menu in the macOS menu bar. The first launch opens a non-modal settings window with the optional chat setup. Close it and the cat will start roaming. To chat, briefly hover over a stationary Naiku until the cat waves, then click; **Chat with Naiku…** in the cat menu is always available too.
 
 If you edit `project.yml`, regenerate the project before building:
 
