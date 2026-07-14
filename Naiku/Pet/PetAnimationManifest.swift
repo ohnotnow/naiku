@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 
 enum PetAnimationID: String, Codable, CaseIterable, Sendable {
     case idle
@@ -50,13 +51,25 @@ struct PetAnimationLibrary {
         guard
             let imageURL = bundle.url(forResource: "NaikuSpritesheet", withExtension: "png"),
             let manifestURL = bundle.url(forResource: "NaikuAnimations", withExtension: "json"),
-            let image = NSImage(contentsOf: imageURL),
+            let imageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
+            let cgImage = CGImageSourceCreateImageAtIndex(
+                imageSource,
+                0,
+                [
+                    kCGImageSourceShouldCache: true,
+                    kCGImageSourceShouldCacheImmediately: true,
+                ] as CFDictionary
+            ),
             let data = try? Data(contentsOf: manifestURL),
             let manifest = try? JSONDecoder().decode(PetAnimationManifest.self, from: data)
         else {
             return nil
         }
 
+        let image = NSImage(
+            cgImage: cgImage,
+            size: NSSize(width: cgImage.width, height: cgImage.height)
+        )
         return PetAnimationLibrary(image: image, manifest: manifest)
     }
 }

@@ -131,6 +131,15 @@ final class PetWindowControllerTests: XCTestCase {
         XCTAssertFalse(controller.isReducedMotionActive)
         controller.tearDown()
     }
+
+    func testStationaryActivityUsesLowerFrequencyMotionUpdates() {
+        let rest = PeripheralActivity.resting(surfaceID: "surface", remaining: 5, duration: 5)
+        let stroll = PeripheralActivity.strolling(surfaceID: "surface", destinationX: 100)
+
+        XCTAssertEqual(PetWindowController.motionInterval(for: rest), PetWindowController.stationaryFrameInterval)
+        XCTAssertEqual(PetWindowController.motionInterval(for: stroll), PetWindowController.frameInterval)
+        XCTAssertGreaterThan(PetWindowController.stationaryFrameInterval, PetWindowController.frameInterval)
+    }
 }
 
 @MainActor

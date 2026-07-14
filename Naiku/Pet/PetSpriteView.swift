@@ -45,11 +45,12 @@ final class PetSpriteView: NSView {
     }
 
     func update(renderState nextState: PetRenderState) {
-        if nextState.animationID != renderState.animationID {
-            frameIndex = 0
-            rescheduleAnimationIfNeeded()
-        }
+        let animationChanged = nextState.animationID != renderState.animationID
         renderState = nextState
+        guard animationChanged else { return }
+
+        frameIndex = 0
+        rescheduleAnimationIfNeeded()
         needsDisplay = true
     }
 
@@ -123,6 +124,7 @@ final class PetSpriteView: NSView {
                 self.scheduleNextFrame()
             }
         }
+        timer.tolerance = min(duration * 0.1, 0.02)
         RunLoop.main.add(timer, forMode: .common)
         animationTimer = timer
     }

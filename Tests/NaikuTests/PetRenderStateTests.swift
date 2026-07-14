@@ -38,6 +38,18 @@ final class PetRenderStateTests: XCTestCase {
         XCTAssertEqual(view.frameIndex, 0)
     }
 
+    func testSameAnimationDoesNotRequestAnUnnecessaryRedraw() throws {
+        let frame = NSRect(origin: .zero, size: PetWindowController.petSize)
+        let view = PetSpriteView(frame: frame, library: try makeLibrary())
+        view.update(renderState: .moving(.east))
+        view.needsDisplay = false
+
+        view.update(renderState: .moving(.northEast))
+
+        XCTAssertFalse(view.needsDisplay)
+        XCTAssertEqual(view.renderState, .moving(.northEast))
+    }
+
     func testVisibleCatRegionCanHandleAnArmedClick() throws {
         let frame = NSRect(origin: .zero, size: PetWindowController.petSize)
         let view = PetSpriteView(frame: frame, library: try makeLibrary())

@@ -4,11 +4,13 @@ import AppKit
 final class PetWindowController: NSWindowController {
     static let petSize = NSSize(width: 72, height: 72)
     static let frameInterval: TimeInterval = 1.0 / 30.0
-    static let terrainRefreshInterval: TimeInterval = 0.5
+    static let stationaryFrameInterval: TimeInterval = 1.0 / 5.0
+    static let terrainRefreshInterval: TimeInterval = 1.0
 
     private var motionTimer: Timer?
     private var terrainTimer: Timer?
     private var suppressionRecheckTimer: Timer?
+    private var motionTimerInterval = PetWindowController.frameInterval
     private var behaviorEngine: PeripheralBehaviorEngine
     private var directChatIntent = DirectChatIntentTracker()
     private let reduceMotionEnabled: @MainActor () -> Bool
@@ -183,17 +185,19 @@ final class PetWindowController: NSWindowController {
         window?.setFrameOrigin(origin)
     }
 
-    private func startMotionTimerIfNeeded() {
+    private func startMotionTimerIfNeeded(interval: TimeInterval) {
         guard motionTimer == nil, !isEffectivelyPaused, window?.isVisible == true else { return }
 
         let timer = Timer(
-            timeInterval: Self.frameInterval,
+            timeInterval: interval,
             target: self,
             selector: #selector(advanceMotion),
             userInfo: nil,
             repeats: true
         )
+        timer.tolerance = interval * 0.1
         RunLoop.main.add(timer, forMode: .common)
+        motionTimerInterval = interval
         motionTimer = timer
     }
 
@@ -208,6 +212,7 @@ final class PetWindowController: NSWindowController {
             userInfo: nil,
             repeats: true
         )
+        timer.tolerance = Self.terrainRefreshInterval * 0.1
         RunLoop.main.add(timer, forMode: .common)
         terrainTimer = timer
     }
@@ -238,7 +243,7 @@ final class PetWindowController: NSWindowController {
         } else {
             spriteView?.startAnimating()
             startTerrainTimerIfNeeded()
-            startMotionTimerIfNeeded()
+            startMotionTimerIfNeeded(interval: Self.frameInterval)
         }
     }
 
@@ -250,12 +255,14 @@ final class PetWindowController: NSWindowController {
         let step = behaviorEngine.step(
             from: window.frame.origin,
             pointer: pointer,
-            elapsed: Self.frameInterval,
+            elapsed: motionTimerInterval,
             petSize: window.frame.size,
             terrain: terrainSnapshot,
             decision: decisionProvider()
         )
-        window.setFrameOrigin(step.origin)
+        if step.origin != window.frame.origin {
+            window.setFrameOrigin(step.origin)
+        }
         let localPointer = CGPoint(
             x: pointer.x - step.origin.x,
             y: pointer.y - step.origin.y
@@ -266,10 +273,19 @@ final class PetWindowController: NSWindowController {
             petOrigin: step.origin,
             isPointerOnCat: pointerIsOnCat,
             isPetStationary: step.activity.isStationary,
-            elapsed: Self.frameInterval
+            elapsed: motionTimerInterval
         )
-        window.ignoresMouseEvents = !isDirectChatArmed
+        let shouldIgnoreMouseEvents = !isDirectChatArmed
+        if window.ignoresMouseEvents != shouldIgnoreMouseEvents {
+            window.ignoresMouseEvents = shouldIgnoreMouseEvents
+        }
         spriteView?.update(renderState: isDirectChatArmed ? .flourishing : step.renderState)
+
+        let nextInterval = Self.motionInterval(for: step.activity)
+        if nextInterval != motionTimerInterval {
+            stopMotionTimer()
+            startMotionTimerIfNeeded(interval: nextInterval)
+        }
     }
 
     @objc
@@ -327,6 +343,7 @@ final class PetWindowController: NSWindowController {
             userInfo: nil,
             repeats: true
         )
+        timer.tolerance = 0.1
         RunLoop.main.add(timer, forMode: .common)
         suppressionRecheckTimer = timer
     }
@@ -354,5 +371,9 @@ final class PetWindowController: NSWindowController {
         directChatIntent.reset()
         isDirectChatArmed = false
         window?.ignoresMouseEvents = true
+    }
+
+    static func motionInterval(for activity: PeripheralActivity) -> TimeInterval {
+        activity.isStationary ? stationaryFrameInterval : frameInterval
     }
 }
