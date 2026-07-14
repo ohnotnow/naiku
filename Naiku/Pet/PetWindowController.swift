@@ -8,6 +8,7 @@ final class PetWindowController: NSWindowController {
 
     private var motionTimer: Timer?
     private var terrainTimer: Timer?
+    private var suppressionRecheckTimer: Timer?
     private var behaviorEngine: PeripheralBehaviorEngine
     private var directChatIntent = DirectChatIntentTracker()
     private let reduceMotionEnabled: @MainActor () -> Bool
@@ -101,6 +102,7 @@ final class PetWindowController: NSWindowController {
         disarmDirectChat()
         spriteView?.stopAnimating()
         stopTerrainTimer()
+        stopSuppressionRecheckTimer()
         window?.orderOut(nil)
     }
 
@@ -109,6 +111,7 @@ final class PetWindowController: NSWindowController {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         stopMotionTimer()
         stopTerrainTimer()
+        stopSuppressionRecheckTimer()
         disarmDirectChat()
         spriteView?.stopAnimating()
         window?.orderOut(nil)
@@ -278,6 +281,13 @@ final class PetWindowController: NSWindowController {
     @objc
     private func activeSpaceDidChange() {
         updateFullScreenSuppression()
+        // Space transitions animate, and the window list can still show the
+        // departing Space's contents when the notification arrives. Check
+        // again once the transition has settled.
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(800))
+            self?.updateFullScreenSuppression()
+        }
     }
 
     /// A `.canJoinAllSpaces` floating panel appears over full-screen apps
@@ -295,10 +305,40 @@ final class PetWindowController: NSWindowController {
         isFullScreenSuppressed = suppressed
         if suppressed {
             window.orderOut(nil)
+            startSuppressionRecheckTimerIfNeeded()
         } else {
+            stopSuppressionRecheckTimer()
             window.orderFrontRegardless()
         }
         applyRunningState()
+    }
+
+    /// While the cat is hidden its motion and terrain timers are stopped, so
+    /// nothing else would notice the full-screen window going away — and the
+    /// Space-change notification can arrive before the window list reflects
+    /// the change. A slow recheck closes both gaps.
+    private func startSuppressionRecheckTimerIfNeeded() {
+        guard suppressionRecheckTimer == nil else { return }
+
+        let timer = Timer(
+            timeInterval: 1.0,
+            target: self,
+            selector: #selector(recheckSuppression),
+            userInfo: nil,
+            repeats: true
+        )
+        RunLoop.main.add(timer, forMode: .common)
+        suppressionRecheckTimer = timer
+    }
+
+    private func stopSuppressionRecheckTimer() {
+        suppressionRecheckTimer?.invalidate()
+        suppressionRecheckTimer = nil
+    }
+
+    @objc
+    private func recheckSuppression() {
+        updateFullScreenSuppression()
     }
 
     @objc
