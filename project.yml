@@ -3,7 +3,7 @@ name: Naiku
 options:
   bundleIdPrefix: dev.naiku
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"
   createIntermediateGroups: true
 
 settings:

@@ -15,18 +15,31 @@ final class ChatPanelController: NSWindowController, NSWindowDelegate {
         self.session = session
         self.onClose = onClose
 
-        let hostingController = NSHostingController(
-            rootView: ChatPanelView(session: session, onOpenSettings: onOpenSettings)
+        let panel = ChatPanel(
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 380, height: 640)),
+            styleMask: [.borderless, .closable, .resizable],
+            backing: .buffered,
+            defer: false
         )
-        let panel = NSPanel(contentViewController: hostingController)
         panel.title = "Chat with Naiku"
-        panel.styleMask = [.titled, .closable, .resizable, .utilityWindow]
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.isMovableByWindowBackground = true
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
-        panel.setContentSize(NSSize(width: 430, height: 500))
-        panel.minSize = NSSize(width: 400, height: 420)
+
+        let hostingController = NSHostingController(
+            rootView: ChatPanelView(
+                session: session,
+                onOpenSettings: onOpenSettings,
+                onCloseRequest: { [weak panel] in panel?.performClose(nil) }
+            )
+        )
+        panel.contentViewController = hostingController
+        panel.setContentSize(NSSize(width: 380, height: 640))
+        panel.minSize = NSSize(width: 340, height: 500)
 
         super.init(window: panel)
         panel.delegate = self

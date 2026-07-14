@@ -23,7 +23,7 @@ Naiku's orange cat uses a complete, data-driven sprite atlas with separate right
 
 ## Requirements
 
-- macOS 14 or later
+- macOS 26 or later
 - Xcode with Swift 6 support
 - An Anthropic or OpenAI API key if you want to use chat
 

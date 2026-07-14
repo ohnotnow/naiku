@@ -3,19 +3,22 @@ import SwiftUI
 struct ChatPanelView: View {
     @ObservedObject var session: ChatSessionModel
     let onOpenSettings: @MainActor () -> Void
+    let onCloseRequest: @MainActor () -> Void
 
     @FocusState private var isInputFocused: Bool
+
+    private static let panelShape = RoundedRectangle(cornerRadius: 32, style: .continuous)
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
             transcript
-            Divider()
             composer
         }
-        .frame(minWidth: 400, idealWidth: 430, minHeight: 420, idealHeight: 500)
-        .background(.regularMaterial)
+        .fontDesign(.rounded)
+        .frame(minWidth: 340, idealWidth: 380, minHeight: 500, idealHeight: 640)
+        .clipShape(Self.panelShape)
+        .glassEffect(.regular, in: Self.panelShape)
         .onAppear { isInputFocused = true }
         .onChange(of: session.focusRequest) { _, _ in
             isInputFocused = true
@@ -24,6 +27,16 @@ struct ChatPanelView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
+            Button("Close", systemImage: "xmark") {
+                onCloseRequest()
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.small)
+            .help("Close chat")
+            .keyboardShortcut("w", modifiers: [.command])
+
             Image(systemName: "cat.fill")
                 .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 2) {
@@ -40,10 +53,14 @@ struct ChatPanelView: View {
                 session.requestInputFocus()
             }
             .labelStyle(.iconOnly)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
             .help("New conversation")
             .keyboardShortcut("n", modifiers: [.command])
         }
-        .padding(12)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
     }
 
     private var transcript: some View {
@@ -74,7 +91,8 @@ struct ChatPanelView: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
     }
 
@@ -95,7 +113,11 @@ struct ChatPanelView: View {
 
             HStack(spacing: 8) {
                 TextField("Message Naiku", text: $session.draft)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.thinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(.quaternary))
                     .focused($isInputFocused)
                     .disabled(session.isSending)
                     .onSubmit { session.send() }
@@ -106,13 +128,19 @@ struct ChatPanelView: View {
                         session.cancel()
                     }
                     .labelStyle(.iconOnly)
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
                     .help("Stop generating")
                     .keyboardShortcut(.cancelAction)
                 } else {
-                    Button("Send", systemImage: "arrow.up.circle.fill") {
+                    Button("Send", systemImage: "arrow.up") {
                         session.send()
                     }
                     .labelStyle(.iconOnly)
+                    .fontWeight(.bold)
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.circle)
+                    .tint(NaikuChatStyle.userBubbleColor)
                     .help("Send message (Return)")
                     .disabled(session.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
@@ -122,16 +150,27 @@ struct ChatPanelView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .padding(12)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 14)
     }
+}
+
+/// Shared colours for the chat's cutesy look. Kept deliberately warm and
+/// high-contrast: white text needs to stay readable on the user bubble.
+private enum NaikuChatStyle {
+    static let userBubbleColor = Color(red: 0.83, green: 0.29, blue: 0.45)
+    static let assistantBubbleTint = Color.orange.opacity(0.24)
 }
 
 private struct MessageBubble: View {
     let message: ChatMessage
 
+    private var isAssistant: Bool { message.role == .assistant }
+
     var body: some View {
         HStack {
-            if message.role == .assistant {
+            if isAssistant {
                 bubble
                 Spacer(minLength: 42)
             } else {
@@ -144,9 +183,34 @@ private struct MessageBubble: View {
     private var bubble: some View {
         Text(message.text)
             .textSelection(.enabled)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(message.role == .assistant ? Color.orange.opacity(0.16) : Color.accentColor.opacity(0.18))
-            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .foregroundStyle(isAssistant ? Color.primary : Color.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(background)
+            .clipShape(shape)
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        if isAssistant {
+            ZStack {
+                Rectangle().fill(.thinMaterial)
+                Rectangle().fill(NaikuChatStyle.assistantBubbleTint)
+            }
+        } else {
+            Rectangle().fill(NaikuChatStyle.userBubbleColor.gradient)
+        }
+    }
+
+    /// iMessage-style bubbles: fully rounded except a smaller "tail" corner
+    /// on the side the speaker sits.
+    private var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 20,
+            bottomLeadingRadius: isAssistant ? 6 : 20,
+            bottomTrailingRadius: isAssistant ? 20 : 6,
+            topTrailingRadius: 20,
+            style: .continuous
+        )
     }
 }
