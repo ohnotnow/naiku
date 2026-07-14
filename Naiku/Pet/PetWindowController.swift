@@ -16,6 +16,8 @@ final class PetWindowController: NSWindowController {
     private(set) var isPaused = false
     private(set) var isInteractionActive = false
     private(set) var isReducedMotionActive = false
+    private(set) var showsOverFullScreenApps = false
+    private(set) var isFullScreenSuppressed = false
     private(set) var terrainSnapshot = TerrainSnapshot(surfaces: [])
     private(set) var isDirectChatArmed = false
 
@@ -76,6 +78,12 @@ final class PetWindowController: NSWindowController {
             name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
             object: nil
         )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(activeSpaceDidChange),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
     }
 
     @available(*, unavailable)
@@ -86,6 +94,7 @@ final class PetWindowController: NSWindowController {
     func show() {
         window?.orderFrontRegardless()
         applyRunningState()
+        updateFullScreenSuppression()
     }
 
     func hide() {
@@ -147,11 +156,10 @@ final class PetWindowController: NSWindowController {
         applyRunningState()
     }
 
-    /// Joining full-screen Spaces is controlled purely by the window's
-    /// collection behaviour, so showing or hiding Naiku beside full-screen
-    /// apps is a matter of granting or withholding `.fullScreenAuxiliary`.
     func setShowsOverFullScreenApps(_ shows: Bool) {
+        showsOverFullScreenApps = shows
         window?.collectionBehavior = Self.collectionBehavior(showsOverFullScreenApps: shows)
+        updateFullScreenSuppression()
     }
 
     private static func collectionBehavior(showsOverFullScreenApps: Bool) -> NSWindow.CollectionBehavior {
@@ -218,7 +226,7 @@ final class PetWindowController: NSWindowController {
 
     private func applyRunningState() {
         isReducedMotionActive = reduceMotionEnabled()
-        if isEffectivelyPaused || isReducedMotionActive {
+        if isEffectivelyPaused || isReducedMotionActive || isFullScreenSuppressed {
             disarmDirectChat()
             stopMotionTimer()
             stopTerrainTimer()
@@ -265,6 +273,32 @@ final class PetWindowController: NSWindowController {
     private func screenParametersDidChange() {
         ensureVisible()
         refreshTerrain()
+    }
+
+    @objc
+    private func activeSpaceDidChange() {
+        updateFullScreenSuppression()
+    }
+
+    /// A `.canJoinAllSpaces` floating panel appears over full-screen apps
+    /// whether or not it declares `.fullScreenAuxiliary`, so staying out of
+    /// full-screen needs an active check: when the user lands on a Space
+    /// showing a full-screen window, Naiku steps off screen until they leave.
+    private func updateFullScreenSuppression() {
+        guard !AppRuntime.isRunningUnitTests else { return }
+        guard let window else { return }
+
+        let suppressed = !showsOverFullScreenApps
+            && terrainProvider.hasFullScreenWindow(near: window.frame)
+        guard suppressed != isFullScreenSuppressed else { return }
+
+        isFullScreenSuppressed = suppressed
+        if suppressed {
+            window.orderOut(nil)
+        } else {
+            window.orderFrontRegardless()
+        }
+        applyRunningState()
     }
 
     @objc

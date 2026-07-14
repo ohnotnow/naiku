@@ -50,6 +50,11 @@ struct WindowGeometryRecord: Sendable, Equatable {
 @MainActor
 protocol WindowTerrainProviding: AnyObject {
     func snapshot(petSize: CGSize) -> TerrainSnapshot
+    func hasFullScreenWindow(near petFrame: CGRect) -> Bool
+}
+
+extension WindowTerrainProviding {
+    func hasFullScreenWindow(near petFrame: CGRect) -> Bool { false }
 }
 
 enum WindowTerrainBuilder {

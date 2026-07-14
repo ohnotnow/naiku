@@ -10,19 +10,29 @@ final class CoreGraphicsWindowTerrainProvider: WindowTerrainProviding {
     }
 
     func snapshot(petSize: CGSize) -> TerrainSnapshot {
-        let displays = DesktopGeometry.currentDisplays
-        let primaryDisplayMaxY = NSScreen.screens.first?.frame.maxY ?? 0
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        let dictionaries = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
-
-        let records = dictionaries.compactMap(Self.record(from:))
-        return WindowTerrainBuilder.build(
-            records: records,
-            displays: displays,
-            primaryDisplayMaxY: primaryDisplayMaxY,
+        WindowTerrainBuilder.build(
+            records: Self.currentRecords(),
+            displays: DesktopGeometry.currentDisplays,
+            primaryDisplayMaxY: NSScreen.screens.first?.frame.maxY ?? 0,
             petSize: petSize,
             ownPID: ownPID
         )
+    }
+
+    func hasFullScreenWindow(near petFrame: CGRect) -> Bool {
+        FullScreenSpaceDetector.hasFullScreenWindow(
+            records: Self.currentRecords(),
+            displays: DesktopGeometry.currentDisplays,
+            primaryDisplayMaxY: NSScreen.screens.first?.frame.maxY ?? 0,
+            near: petFrame,
+            ownPID: ownPID
+        )
+    }
+
+    private static func currentRecords() -> [WindowGeometryRecord] {
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        let dictionaries = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
+        return dictionaries.compactMap(Self.record(from:))
     }
 
     private static func record(from dictionary: [String: Any]) -> WindowGeometryRecord? {
