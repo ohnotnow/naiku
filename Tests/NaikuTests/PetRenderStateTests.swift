@@ -23,6 +23,17 @@ final class PetRenderStateTests: XCTestCase {
         XCTAssertEqual(manifest.sourceRect(for: .waiting, frameIndex: 0), NSRect(x: 0, y: 416, width: 192, height: 208))
     }
 
+    func testBundledAtlasIsMaterializedAndRestingAnimationsPauseBetweenCycles() throws {
+        let library = try XCTUnwrap(PetAnimationLibrary.bundled())
+        let bitmap = try XCTUnwrap(library.image.representations.first as? NSBitmapImageRep)
+
+        XCTAssertNotNil(bitmap.bitmapData)
+        XCTAssertEqual(bitmap.pixelsWide, library.manifest.atlasWidth)
+        XCTAssertEqual(bitmap.pixelsHigh, library.manifest.atlasHeight)
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(library.manifest.animation(.idle)?.frameDurations.last), 1_000)
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(library.manifest.animation(.waiting)?.frameDurations.last), 1_000)
+    }
+
     func testAnimationDoesNotRestartWithinTheSameAtlasRow() throws {
         let frame = NSRect(origin: .zero, size: PetWindowController.petSize)
         let view = PetSpriteView(frame: frame, library: try makeLibrary())

@@ -66,10 +66,11 @@ struct PetAnimationLibrary {
             return nil
         }
 
-        let image = NSImage(
-            cgImage: cgImage,
-            size: NSSize(width: cgImage.width, height: cgImage.height)
-        )
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        bitmap.size = NSSize(width: cgImage.width, height: cgImage.height)
+        let image = NSImage(size: bitmap.size)
+        image.cacheMode = .never
+        image.addRepresentation(bitmap)
         return PetAnimationLibrary(image: image, manifest: manifest)
     }
 }
