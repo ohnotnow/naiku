@@ -3,24 +3,20 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
-    @State private var pendingProvider: ChatProviderID?
-    @State private var isConfirmingProviderChange = false
+    @State private var isReplacingKey = false
 
     var body: some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Welcome to Naiku", systemImage: "cat.fill")
-                        .font(.headline)
-                    Text("Naiku is a desktop pet first: close this window and the cat will happily follow your pointer without an API key.")
-                    Text("Chat is bring-your-own-key (BYOK). Choose Anthropic or OpenAI below; your key is stored in macOS Keychain and is sent only to that provider.")
-                        .foregroundStyle(.secondary)
-                }
-                .font(.callout)
-                .accessibilityElement(children: .combine)
+                Label("Naiku is happy without a key — chat is an optional power-up.", systemImage: "cat.fill")
+                    .font(.callout)
             }
 
-            Section("Conversation") {
+            Section("Naiku") {
+                Toggle("Show Naiku over full-screen apps", isOn: fullScreenSelection)
+            }
+
+            Section("Chat") {
                 Picker("Provider", selection: providerSelection) {
                     ForEach(ChatProviderID.allCases) { provider in
                         Text(provider.displayName).tag(provider)
@@ -31,29 +27,12 @@ struct SettingsView: View {
                 Label("Changing provider starts a new conversation.", systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                TextField("Model", text: modelText)
+                    .autocorrectionDisabled()
             }
 
-            Section("Models") {
-                TextField("Anthropic model", text: $model.anthropicModel)
-                TextField("OpenAI model", text: $model.openAIModel)
-                Button("Save Model Choices") {
-                    model.saveModels()
-                }
-            }
-
-            credentialSection(
-                provider: .anthropic,
-                isConfigured: model.hasAnthropicKey,
-                draft: $model.anthropicKeyDraft,
-                keyURL: URL(string: "https://console.anthropic.com/settings/keys")!
-            )
-
-            credentialSection(
-                provider: .openAI,
-                isConfigured: model.hasOpenAIKey,
-                draft: $model.openAIKeyDraft,
-                keyURL: URL(string: "https://platform.openai.com/api-keys")!
-            )
+            keySection
 
             Section {
                 Label("Keys stay in your macOS Keychain and are sent only to the selected provider.", systemImage: "lock.shield")
@@ -68,65 +47,95 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding(8)
-        .frame(width: 500, height: 640)
-        .alert("Start a new conversation?", isPresented: $isConfirmingProviderChange) {
-            Button("Cancel", role: .cancel) {
-                pendingProvider = nil
-            }
-            Button("Switch Provider") {
-                if let pendingProvider {
-                    model.selectProvider(pendingProvider)
+        .frame(width: 480, height: 500)
+        .onChange(of: model.activeProvider) { _, _ in
+            isReplacingKey = false
+        }
+        .onChange(of: model.anthropicModel) { _, _ in
+            model.persistModels()
+        }
+        .onChange(of: model.openAIModel) { _, _ in
+            model.persistModels()
+        }
+    }
+
+    private var keySection: some View {
+        Section("\(model.activeProvider.displayName) API key") {
+            if isActiveProviderConfigured, !isReplacingKey {
+                HStack {
+                    Label("Key saved in Keychain", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Button("Replace…") {
+                        isReplacingKey = true
+                    }
+                    Button("Remove", role: .destructive) {
+                        model.deleteKey(for: model.activeProvider)
+                    }
                 }
-                pendingProvider = nil
+            } else {
+                HStack {
+                    SecureField("Paste API key", text: keyDraft)
+                    Link("Create a key", destination: keyURL(for: model.activeProvider))
+                }
+
+                HStack {
+                    Button("Save Key") {
+                        model.saveKey(for: model.activeProvider)
+                        isReplacingKey = false
+                    }
+                    .disabled(keyDraft.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    if isReplacingKey {
+                        Button("Cancel") {
+                            keyDraft.wrappedValue = ""
+                            isReplacingKey = false
+                        }
+                    }
+                }
             }
-        } message: {
-            Text("Naiku will clear the current chat before using another provider.")
         }
     }
 
     private var providerSelection: Binding<ChatProviderID> {
         Binding(
             get: { model.activeProvider },
-            set: { provider in
-                guard provider != model.activeProvider else { return }
-                pendingProvider = provider
-                isConfirmingProviderChange = true
-            }
+            set: { model.selectProvider($0) }
         )
     }
 
-    @ViewBuilder
-    private func credentialSection(
-        provider: ChatProviderID,
-        isConfigured: Bool,
-        draft: Binding<String>,
-        keyURL: URL
-    ) -> some View {
-        Section("\(provider.displayName) API Key") {
-            HStack {
-                Label(
-                    isConfigured ? "Configured" : "Not configured",
-                    systemImage: isConfigured ? "checkmark.circle.fill" : "circle"
-                )
-                .foregroundStyle(isConfigured ? Color.green : Color.secondary)
-                Spacer()
-                Link("Create a key", destination: keyURL)
-            }
+    private var fullScreenSelection: Binding<Bool> {
+        Binding(
+            get: { model.showsOverFullScreenApps },
+            set: { model.setShowsOverFullScreenApps($0) }
+        )
+    }
 
-            SecureField(isConfigured ? "Paste a replacement key" : "Paste API key", text: draft)
+    private var modelText: Binding<String> {
+        switch model.activeProvider {
+        case .anthropic: $model.anthropicModel
+        case .openAI: $model.openAIModel
+        }
+    }
 
-            HStack {
-                Button(isConfigured ? "Replace Key" : "Save Key") {
-                    model.saveKey(for: provider)
-                }
-                .disabled(draft.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    private var keyDraft: Binding<String> {
+        switch model.activeProvider {
+        case .anthropic: $model.anthropicKeyDraft
+        case .openAI: $model.openAIKeyDraft
+        }
+    }
 
-                if isConfigured {
-                    Button("Remove", role: .destructive) {
-                        model.deleteKey(for: provider)
-                    }
-                }
-            }
+    private var isActiveProviderConfigured: Bool {
+        switch model.activeProvider {
+        case .anthropic: model.hasAnthropicKey
+        case .openAI: model.hasOpenAIKey
+        }
+    }
+
+    private func keyURL(for provider: ChatProviderID) -> URL {
+        switch provider {
+        case .anthropic: URL(string: "https://console.anthropic.com/settings/keys")!
+        case .openAI: URL(string: "https://platform.openai.com/api-keys")!
         }
     }
 }

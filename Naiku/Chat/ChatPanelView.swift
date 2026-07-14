@@ -156,11 +156,13 @@ struct ChatPanelView: View {
     }
 }
 
-/// Shared colours for the chat's cutesy look. Kept deliberately warm and
-/// high-contrast: white text needs to stay readable on the user bubble.
+/// Shared colours for the chat's cutesy look. Both bubbles use fixed colours
+/// rather than adaptive tints so they stay warm and high-contrast on top of
+/// the glass, whatever is behind the window.
 private enum NaikuChatStyle {
     static let userBubbleColor = Color(red: 0.83, green: 0.29, blue: 0.45)
-    static let assistantBubbleTint = Color.orange.opacity(0.24)
+    static let assistantBubbleColor = Color(red: 1.0, green: 0.78, blue: 0.52)
+    static let assistantTextColor = Color(red: 0.29, green: 0.18, blue: 0.05)
 }
 
 private struct MessageBubble: View {
@@ -183,23 +185,17 @@ private struct MessageBubble: View {
     private var bubble: some View {
         Text(message.text)
             .textSelection(.enabled)
-            .foregroundStyle(isAssistant ? Color.primary : Color.white)
+            .foregroundStyle(isAssistant ? NaikuChatStyle.assistantTextColor : Color.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(background)
             .clipShape(shape)
     }
 
-    @ViewBuilder
     private var background: some View {
-        if isAssistant {
-            ZStack {
-                Rectangle().fill(.thinMaterial)
-                Rectangle().fill(NaikuChatStyle.assistantBubbleTint)
-            }
-        } else {
-            Rectangle().fill(NaikuChatStyle.userBubbleColor.gradient)
-        }
+        Rectangle().fill(
+            (isAssistant ? NaikuChatStyle.assistantBubbleColor : NaikuChatStyle.userBubbleColor).gradient
+        )
     }
 
     /// iMessage-style bubbles: fully rounded except a smaller "tail" corner

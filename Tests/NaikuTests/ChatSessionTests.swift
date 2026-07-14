@@ -179,6 +179,7 @@ private final class ChatMemoryKeyStore: APIKeyStoring {
 @MainActor
 private final class ChatMemoryPreferences: PreferencesStoring {
     var activeProvider = ChatProviderID.anthropic
+    var showsOverFullScreenApps = false
     private var models: [ChatProviderID: String] = [:]
 
     func model(for provider: ChatProviderID) -> String {

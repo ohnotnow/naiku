@@ -64,12 +64,16 @@ final class SettingsModelTests: XCTestCase {
         XCTAssertEqual(preferences.activeProvider, .anthropic)
         XCTAssertEqual(preferences.model(for: .anthropic), "claude-haiku-4-5")
 
+        XCTAssertFalse(preferences.showsOverFullScreenApps)
+
         preferences.activeProvider = .openAI
         preferences.setModel("  custom-luna  ", for: .openAI)
+        preferences.showsOverFullScreenApps = true
 
         let reloaded = AppPreferences(defaults: defaults)
         XCTAssertEqual(reloaded.activeProvider, .openAI)
         XCTAssertEqual(reloaded.model(for: .openAI), "custom-luna")
+        XCTAssertTrue(reloaded.showsOverFullScreenApps)
         XCTAssertNil(defaults.string(forKey: "apiKey"))
     }
 
@@ -108,6 +112,41 @@ final class SettingsModelTests: XCTestCase {
         XCTAssertNotNil(model.statusMessage)
     }
 
+    func testFullScreenVisibilityPersistsAndNotifiesOncePerChange() {
+        let preferences = SettingsMemoryPreferences()
+        var received: [Bool] = []
+        let model = SettingsModel(
+            keyStore: SettingsMemoryKeyStore(),
+            preferences: preferences,
+            onFullScreenVisibilityChanged: { received.append($0) }
+        )
+
+        XCTAssertFalse(model.showsOverFullScreenApps)
+
+        model.setShowsOverFullScreenApps(true)
+        XCTAssertTrue(model.showsOverFullScreenApps)
+        XCTAssertTrue(preferences.showsOverFullScreenApps)
+        XCTAssertEqual(received, [true])
+
+        model.setShowsOverFullScreenApps(true)
+        XCTAssertEqual(received, [true])
+
+        model.setShowsOverFullScreenApps(false)
+        XCTAssertEqual(received, [true, false])
+        XCTAssertFalse(preferences.showsOverFullScreenApps)
+    }
+
+    func testEditedModelsPersistWithoutRewritingTheFields() {
+        let preferences = SettingsMemoryPreferences()
+        let model = SettingsModel(keyStore: SettingsMemoryKeyStore(), preferences: preferences)
+
+        model.anthropicModel = "claude-custom "
+        model.persistModels()
+
+        XCTAssertEqual(preferences.models[.anthropic], "claude-custom ")
+        XCTAssertEqual(model.anthropicModel, "claude-custom ")
+    }
+
     func testCredentialDraftsCanBeDiscardedWithoutChangingStoredKeys() {
         let keyStore = SettingsMemoryKeyStore()
         let model = SettingsModel(keyStore: keyStore, preferences: SettingsMemoryPreferences())
@@ -134,6 +173,7 @@ private final class SettingsMemoryKeyStore: APIKeyStoring {
 @MainActor
 private final class SettingsMemoryPreferences: PreferencesStoring {
     var activeProvider = ChatProviderID.anthropic
+    var showsOverFullScreenApps = false
     var models: [ChatProviderID: String] = [:]
 
     func model(for provider: ChatProviderID) -> String {

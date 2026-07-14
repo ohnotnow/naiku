@@ -6,6 +6,7 @@ final class AppPreferences: PreferencesStoring {
         static let activeProvider = "activeProvider"
         static let anthropicModel = "anthropicModel"
         static let openAIModel = "openAIModel"
+        static let showsOverFullScreenApps = "showsOverFullScreenApps"
     }
 
     private let defaults: UserDefaults
@@ -22,6 +23,11 @@ final class AppPreferences: PreferencesStoring {
         set {
             defaults.set(newValue.rawValue, forKey: Key.activeProvider)
         }
+    }
+
+    var showsOverFullScreenApps: Bool {
+        get { defaults.bool(forKey: Key.showsOverFullScreenApps) }
+        set { defaults.set(newValue, forKey: Key.showsOverFullScreenApps) }
     }
 
     func model(for provider: ChatProviderID) -> String {

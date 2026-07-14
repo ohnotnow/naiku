@@ -24,6 +24,7 @@ final class ChatPanelController: NSWindowController, NSWindowDelegate {
         panel.title = "Chat with Naiku"
         panel.isOpaque = false
         panel.backgroundColor = .clear
+        panel.hasShadow = false
         panel.isMovableByWindowBackground = true
         panel.level = .floating
         panel.hidesOnDeactivate = false
@@ -37,6 +38,9 @@ final class ChatPanelController: NSWindowController, NSWindowDelegate {
                 onCloseRequest: { [weak panel] in panel?.performClose(nil) }
             )
         )
+        // Without this, the hosting view constrains itself to the SwiftUI
+        // minimum width and leaves an invisible dead strip inside the window.
+        hostingController.sizingOptions = []
         panel.contentViewController = hostingController
         panel.setContentSize(NSSize(width: 380, height: 640))
         panel.minSize = NSSize(width: 340, height: 500)

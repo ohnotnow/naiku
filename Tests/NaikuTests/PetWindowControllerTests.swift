@@ -18,7 +18,24 @@ final class PetWindowControllerTests: XCTestCase {
         XCTAssertTrue(panel.styleMask.contains(.borderless))
         XCTAssertTrue(panel.styleMask.contains(.nonactivatingPanel))
         XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
+        XCTAssertFalse(panel.collectionBehavior.contains(.fullScreenAuxiliary))
+
+        controller.tearDown()
+    }
+
+    func testFullScreenVisibilityPreferenceTogglesCollectionBehavior() throws {
+        let controller = PetWindowController(screen: nil)
+        let panel = try XCTUnwrap(controller.window)
+
+        controller.setShowsOverFullScreenApps(true)
         XCTAssertTrue(panel.collectionBehavior.contains(.fullScreenAuxiliary))
+        XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
+        XCTAssertTrue(panel.collectionBehavior.contains(.ignoresCycle))
+
+        controller.setShowsOverFullScreenApps(false)
+        XCTAssertFalse(panel.collectionBehavior.contains(.fullScreenAuxiliary))
+        XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
+        XCTAssertTrue(panel.collectionBehavior.contains(.ignoresCycle))
 
         controller.tearDown()
     }

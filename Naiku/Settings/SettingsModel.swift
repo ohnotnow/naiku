@@ -10,23 +10,28 @@ final class SettingsModel: ObservableObject {
     @Published var openAIKeyDraft = ""
     @Published private(set) var hasAnthropicKey = false
     @Published private(set) var hasOpenAIKey = false
+    @Published private(set) var showsOverFullScreenApps: Bool
     @Published private(set) var statusMessage: String?
 
     private let keyStore: APIKeyStoring
     private let preferences: PreferencesStoring
     private var onProviderChanged: @MainActor () -> Void
+    private let onFullScreenVisibilityChanged: @MainActor (Bool) -> Void
 
     init(
         keyStore: APIKeyStoring,
         preferences: PreferencesStoring,
-        onProviderChanged: @escaping @MainActor () -> Void = {}
+        onProviderChanged: @escaping @MainActor () -> Void = {},
+        onFullScreenVisibilityChanged: @escaping @MainActor (Bool) -> Void = { _ in }
     ) {
         self.keyStore = keyStore
         self.preferences = preferences
         self.onProviderChanged = onProviderChanged
+        self.onFullScreenVisibilityChanged = onFullScreenVisibilityChanged
         activeProvider = preferences.activeProvider
         anthropicModel = preferences.model(for: .anthropic)
         openAIModel = preferences.model(for: .openAI)
+        showsOverFullScreenApps = preferences.showsOverFullScreenApps
         refreshCredentialStatus()
     }
 
@@ -53,12 +58,19 @@ final class SettingsModel: ObservableObject {
         onProviderChanged = handler
     }
 
-    func saveModels() {
+    func setShowsOverFullScreenApps(_ shows: Bool) {
+        guard shows != showsOverFullScreenApps else { return }
+        showsOverFullScreenApps = shows
+        preferences.showsOverFullScreenApps = shows
+        onFullScreenVisibilityChanged(shows)
+    }
+
+    /// Persists the model fields as they are edited. Unlike the old
+    /// "Save Model Choices" button this never rewrites the published values,
+    /// so typing is not disturbed.
+    func persistModels() {
         preferences.setModel(anthropicModel, for: .anthropic)
         preferences.setModel(openAIModel, for: .openAI)
-        anthropicModel = preferences.model(for: .anthropic)
-        openAIModel = preferences.model(for: .openAI)
-        statusMessage = "Model choices saved."
     }
 
     func saveKey(for provider: ChatProviderID) {

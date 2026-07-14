@@ -12,7 +12,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Naiku Settings"
         window.styleMask = [.titled, .closable, .miniaturizable]
-        window.setContentSize(NSSize(width: 500, height: 640))
+        window.setContentSize(NSSize(width: 480, height: 500))
         window.isReleasedWhenClosed = false
         window.center()
 

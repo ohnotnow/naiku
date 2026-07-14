@@ -14,7 +14,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !AppRuntime.isRunningUnitTests else { return }
 
         let petController = PetWindowController()
-        let model = SettingsModel(keyStore: KeychainAPIKeyStore(), preferences: AppPreferences())
+        let preferences = AppPreferences()
+        let model = SettingsModel(
+            keyStore: KeychainAPIKeyStore(),
+            preferences: preferences,
+            onFullScreenVisibilityChanged: { [weak petController] shows in
+                petController?.setShowsOverFullScreenApps(shows)
+            }
+        )
+        petController.setShowsOverFullScreenApps(preferences.showsOverFullScreenApps)
         let settingsController = SettingsWindowController(model: model)
         let chatSession = ChatSessionModel(
             settings: model,

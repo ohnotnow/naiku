@@ -55,9 +55,11 @@ final class PetWindowController: NSWindowController {
         panel.ignoresMouseEvents = true
         panel.level = .floating
 
-        // Naiku follows the user between normal Spaces and may appear beside a
-        // full-screen app. `.ignoresCycle` keeps this utility panel out of ⌘-`.
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        // Naiku follows the user between normal Spaces, and stays away from
+        // full-screen apps unless the preference allows it (applied after
+        // launch via `setShowsOverFullScreenApps`). `.ignoresCycle` keeps
+        // this utility panel out of ⌘-`.
+        panel.collectionBehavior = Self.collectionBehavior(showsOverFullScreenApps: false)
         panel.contentView = PetSpriteView(frame: NSRect(origin: .zero, size: Self.petSize))
 
         super.init(window: panel)
@@ -143,6 +145,21 @@ final class PetWindowController: NSWindowController {
 
     func refreshAccessibilityPreferences() {
         applyRunningState()
+    }
+
+    /// Joining full-screen Spaces is controlled purely by the window's
+    /// collection behaviour, so showing or hiding Naiku beside full-screen
+    /// apps is a matter of granting or withholding `.fullScreenAuxiliary`.
+    func setShowsOverFullScreenApps(_ shows: Bool) {
+        window?.collectionBehavior = Self.collectionBehavior(showsOverFullScreenApps: shows)
+    }
+
+    private static func collectionBehavior(showsOverFullScreenApps: Bool) -> NSWindow.CollectionBehavior {
+        var behavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .ignoresCycle]
+        if showsOverFullScreenApps {
+            behavior.insert(.fullScreenAuxiliary)
+        }
+        return behavior
     }
 
     private func positionInitially(on screen: NSScreen?) {

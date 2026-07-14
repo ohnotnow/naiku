@@ -16,6 +16,7 @@ The cat is perfectly happy without an API key. Chat is optional and uses your ow
 - Chats through Anthropic's Messages API or OpenAI's Responses API.
 - Keeps the two provider keys separate and lets you edit each model ID.
 - Has pause, settings and quit controls in the menu bar.
+- Stays out of full-screen apps by default; a Settings toggle invites the cat along if you want the company.
 - Stays put when macOS Reduce Motion is enabled.
 - Blinks, breathes and settles into a patient waiting loop between decisions.
 
@@ -76,13 +77,15 @@ Each API key is stored as a separate generic-password item in macOS Keychain. Ke
 
 Keychain items are available only while the Mac is unlocked. If you paste a key but close Settings without saving it, Naiku discards that draft.
 
+When you build Naiku from source without a signing identity, each build is ad-hoc signed and macOS treats it as a new app. The first chat message after a rebuild therefore prompts for Keychain access again; choose **Always Allow** to silence the prompt for that build.
+
 Conversation messages remain in memory for the current app session. Naiku sends them to the active provider only when you submit them, and does not save them. Your provider may retain or process requests under its own terms and account settings.
 
 The app runs in the macOS App Sandbox with outbound network access. Its current feature set does not need Accessibility, Screen Recording or Automation permission.
 
 ## macOS behaviour and limitations
 
-Naiku asks macOS to appear on every ordinary Space and alongside full-screen apps. macOS still controls window ordering, so an exclusive full-screen app or an unusual window-management setup can temporarily hide the cat or chat panel.
+Naiku asks macOS to appear on every ordinary Space. By default the cat stays away from full-screen apps; turn on **Show Naiku over full-screen apps** in Settings to let it join them. macOS still controls window ordering, so an exclusive full-screen app or an unusual window-management setup can temporarily hide the cat or chat panel.
 
 It copes with displays that have negative coordinates or sit above or below the primary display. Disconnect or rearrange a display and Naiku recovers onto an available surface. Window bounds come from required Core Graphics geometry; Naiku does not read window titles or request Screen Recording or Accessibility permission.
 
