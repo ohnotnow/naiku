@@ -19,7 +19,7 @@ The cat is perfectly happy without an API key. Chat is optional and uses your ow
 - Stays put when macOS Reduce Motion is enabled.
 - Blinks, breathes and settles into a patient waiting loop between decisions.
 
-Naiku's orange cat uses a complete, data-driven sprite atlas with separate rightward, leftward and vertical running cycles. A second cat is still an idea for later.
+Naiku's orange cat uses a complete, data-driven sprite atlas with separate rightward, leftward and vertical running cycles. See [Making a custom cat](CUSTOM_CATS.md) to give Naiku your own character and animations.
 
 ## Requirements
 
