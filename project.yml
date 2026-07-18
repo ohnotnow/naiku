@@ -6,6 +6,11 @@ options:
     macOS: "26.0"
   createIntermediateGroups: true
 
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: 1.10.0
+
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -36,6 +41,8 @@ targets:
         LSUIElement: true
         NSHumanReadableCopyright: "Copyright © 2026 Naiku contributors"
         NSPrincipalClass: NSApplication
+    dependencies:
+      - package: KeyboardShortcuts
     entitlements:
       path: Naiku/Naiku.entitlements
       properties:

@@ -1,4 +1,5 @@
 import Foundation
+import KeyboardShortcuts
 import SwiftUI
 
 struct SettingsView: View {
@@ -30,6 +31,8 @@ struct SettingsView: View {
 
                 TextField("Model", text: modelText)
                     .autocorrectionDisabled()
+
+                KeyboardShortcuts.Recorder("Open chat from anywhere", name: .openChat)
             }
 
             keySection

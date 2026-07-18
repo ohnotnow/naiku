@@ -16,6 +16,7 @@ The cat is perfectly happy without an API key. Chat is optional and uses your ow
 - Chats through Anthropic's Messages API or OpenAI's Responses API.
 - Keeps the two provider keys separate and lets you edit each model ID.
 - Has pause, settings and quit controls in the menu bar.
+- Can summon the chat from any app with a global keyboard shortcut, once you record one in Settings.
 - Stays out of full-screen apps by default; a Settings toggle invites the cat along if you want the company.
 - Stays put when macOS Reduce Motion is enabled.
 - Blinks, breathes and settles into a patient waiting loop between decisions.
@@ -29,6 +30,8 @@ Naiku's orange cat uses a complete, data-driven sprite atlas with separate right
 - An Anthropic or OpenAI API key if you want to use chat
 
 The source has been tested with Xcode 26.1.1. The checked-in Xcode project was generated with [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.44.1. You only need XcodeGen if you change `project.yml` or the project structure.
+
+The first build resolves one Swift package, [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts), which provides the global chat shortcut and its recorder control, so it needs network access.
 
 ## Getting started
 
@@ -68,12 +71,13 @@ Open the cat menu in the macOS menu bar and choose **Settings…**.
 2. Create a key in the [Anthropic Console](https://console.anthropic.com/settings/keys) or on the [OpenAI API key page](https://platform.openai.com/api-keys).
 3. Paste the key into the matching secure field and save it.
 4. Keep the suggested model ID, or replace it with another model available to your account.
+5. Optionally, record a keyboard shortcut next to **Open chat from anywhere**. Pressing it in any app brings Naiku forward with the chat open and the input focused. There is no shortcut until you record one, and macOS ignores it if another app registered the same combination first.
 
 The initial model IDs are `claude-haiku-4-5` and `gpt-5.6-luna`. API access may incur charges on your provider account. If you switch provider, Naiku starts a fresh in-memory conversation.
 
 ## Privacy and security
 
-Each API key is stored as a separate generic-password item in macOS Keychain. Keys are never written to `UserDefaults`, source files, test fixtures or logs. The only preferences kept in `UserDefaults` are your provider choice, model IDs and whether the welcome screen has been shown.
+Each API key is stored as a separate generic-password item in macOS Keychain. Keys are never written to `UserDefaults`, source files, test fixtures or logs. The only preferences kept in `UserDefaults` are your provider choice, model IDs, your recorded chat shortcut and whether the welcome screen has been shown.
 
 Keychain items are available only while the Mac is unlocked. If you paste a key but close Settings without saving it, Naiku discards that draft.
 
@@ -81,7 +85,7 @@ When you build Naiku from source without a signing identity, each build is ad-ho
 
 Conversation messages remain in memory for the current app session. Naiku sends them to the active provider only when you submit them, and does not save them. Your provider may retain or process requests under its own terms and account settings.
 
-The app runs in the macOS App Sandbox with outbound network access. Its current feature set does not need Accessibility, Screen Recording or Automation permission.
+The app runs in the macOS App Sandbox with outbound network access. Its current feature set does not need Accessibility, Screen Recording or Automation permission; the global chat shortcut uses the system hot-key service, which works inside the sandbox without extra permissions.
 
 ## macOS behaviour and limitations
 

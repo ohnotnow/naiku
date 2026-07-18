@@ -1,4 +1,5 @@
 import AppKit
+import KeyboardShortcuts
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -48,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             chatController?.show(near: petController?.window?.frame)
         }
         petController.onPetClick = showChat
+        KeyboardShortcuts.onKeyUp(for: .openChat, action: showChat)
         let statusController = StatusMenuController(
             onShowChat: showChat,
             onPauseChanged: { [weak petController] isPaused in
