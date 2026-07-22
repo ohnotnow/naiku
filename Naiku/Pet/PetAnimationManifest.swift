@@ -52,25 +52,41 @@ struct PetAnimationLibrary {
             let imageURL = bundle.url(forResource: "NaikuSpritesheet", withExtension: "png"),
             let manifestURL = bundle.url(forResource: "NaikuAnimations", withExtension: "json"),
             let imageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
-            let cgImage = CGImageSourceCreateImageAtIndex(
-                imageSource,
-                0,
-                [
-                    kCGImageSourceShouldCache: true,
-                    kCGImageSourceShouldCacheImmediately: true,
-                ] as CFDictionary
-            ),
+            let pngImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil),
+            let atlasImage = decodedCopy(of: pngImage),
             let data = try? Data(contentsOf: manifestURL),
             let manifest = try? JSONDecoder().decode(PetAnimationManifest.self, from: data)
         else {
             return nil
         }
 
-        let bitmap = NSBitmapImageRep(cgImage: cgImage)
-        bitmap.size = NSSize(width: cgImage.width, height: cgImage.height)
+        let bitmap = NSBitmapImageRep(cgImage: atlasImage)
+        bitmap.size = NSSize(width: atlasImage.width, height: atlasImage.height)
         let image = NSImage(size: bitmap.size)
-        image.cacheMode = .never
         image.addRepresentation(bitmap)
         return PetAnimationLibrary(image: image, manifest: manifest)
+    }
+
+    /// A PNG-provider-backed CGImage gets re-decoded and colour-matched on
+    /// every draw whenever the system's evictable decode cache lets go of it,
+    /// so the atlas is rendered once into pixels the app owns.
+    private static func decodedCopy(of cgImage: CGImage) -> CGImage? {
+        guard
+            let colourSpace = CGColorSpace(name: CGColorSpace.sRGB),
+            let context = CGContext(
+                data: nil,
+                width: cgImage.width,
+                height: cgImage.height,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: colourSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+            )
+        else {
+            return nil
+        }
+        context.interpolationQuality = .none
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+        return context.makeImage()
     }
 }
