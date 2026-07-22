@@ -26,7 +26,7 @@ Naiku's orange cat uses a complete, data-driven sprite atlas with separate right
 ## Requirements
 
 - macOS 26 or later
-- Xcode with Swift 6 support
+- Xcode with Swift 6 support (run `xcode-select --install` if you don't have it - or install the full-fat Xcode via the App Store)
 - An Anthropic or OpenAI API key if you want to use chat
 
 The source has been tested with Xcode 26.1.1. The checked-in Xcode project was generated with [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.44.1. You only need XcodeGen if you change `project.yml` or the project structure.
@@ -40,13 +40,7 @@ Clone the repository and open `Naiku.xcodeproj` in Xcode. Select the `Naiku` sch
 To build from Terminal:
 
 ```sh
-xcodebuild \
-  -project Naiku.xcodeproj \
-  -scheme Naiku \
-  -configuration Debug \
-  -destination 'platform=macOS' \
-  -derivedDataPath build \
-  build
+./build.sh
 ```
 
 The built app ends up at `build/Build/Products/Debug/Naiku.app`. Launch it with:
