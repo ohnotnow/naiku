@@ -317,6 +317,83 @@ final class PeripheralBehaviorEngineTests: XCTestCase {
         }
     }
 
+    func testExpiredScreenEdgeDwellCutsRestShortToReachAWindowTop() {
+        var config = configuration(idle: 60)
+        config.minimumFallbackDwellDuration = 10
+        config.maximumFallbackDwellDuration = 10
+        var engine = PeripheralBehaviorEngine(configuration: config)
+        let edgeOnly = TerrainSnapshot(surfaces: [fallbackSurface])
+        let withWindow = TerrainSnapshot(surfaces: [sourceSurface, fallbackSurface])
+
+        var step = engine.step(
+            from: CGPoint(x: 120, y: 0),
+            pointer: .zero,
+            elapsed: 0,
+            petSize: petSize,
+            terrain: edgeOnly,
+            decision: decision()
+        )
+
+        for _ in 0..<9 {
+            step = engine.step(
+                from: step.origin,
+                pointer: .zero,
+                elapsed: 1,
+                petSize: petSize,
+                terrain: withWindow,
+                decision: decision()
+            )
+            XCTAssertEqual(step.origin.y, fallbackSurface.y)
+        }
+
+        step = engine.step(
+            from: step.origin,
+            pointer: .zero,
+            elapsed: 1,
+            petSize: petSize,
+            terrain: withWindow,
+            decision: decision()
+        )
+
+        guard case let .jumping(journey) = step.activity else {
+            return XCTFail("Expected a nosiness jump up to the window top")
+        }
+        XCTAssertEqual(journey.targetSurfaceID, sourceSurface.id)
+        XCTAssertEqual(step.renderState, .jumping)
+    }
+
+    func testCatStaysOnScreenEdgeWhenNoWindowTopExists() {
+        var config = configuration(idle: 60)
+        config.minimumFallbackDwellDuration = 5
+        config.maximumFallbackDwellDuration = 5
+        var engine = PeripheralBehaviorEngine(configuration: config)
+        let terrain = TerrainSnapshot(surfaces: [fallbackSurface])
+
+        var step = engine.step(
+            from: CGPoint(x: 120, y: 0),
+            pointer: .zero,
+            elapsed: 0,
+            petSize: petSize,
+            terrain: terrain,
+            decision: decision()
+        )
+
+        for _ in 0..<12 {
+            step = engine.step(
+                from: step.origin,
+                pointer: .zero,
+                elapsed: 1,
+                petSize: petSize,
+                terrain: terrain,
+                decision: decision()
+            )
+            XCTAssertEqual(step.origin.y, fallbackSurface.y)
+            if case .jumping = step.activity {
+                XCTFail("The cat has nowhere better to be without window tops")
+            }
+        }
+    }
+
     func testQuadraticJumpStartsAndEndsOnItsSurfaces() {
         let start = CGPoint(x: 100, y: 300)
         let end = CGPoint(x: 600, y: 200)

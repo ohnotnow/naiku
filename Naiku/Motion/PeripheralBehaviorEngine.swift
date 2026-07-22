@@ -13,6 +13,8 @@ struct PeripheralBehaviorConfiguration: Sendable, Equatable {
     var jumpHeight: CGFloat = 90
     var minimumJumpDuration: TimeInterval = 0.8
     var maximumJumpDuration: TimeInterval = 1.4
+    var minimumFallbackDwellDuration: TimeInterval = 10
+    var maximumFallbackDwellDuration: TimeInterval = 40
 }
 
 struct PeripheralDecisionValues: Sendable, Equatable {
@@ -67,6 +69,8 @@ struct PeripheralBehaviorEngine: Sendable {
     private(set) var activity = PeripheralActivity.unplaced
     private(set) var pointerInterestSurfaceID: String?
     private(set) var pointerInterestElapsed: TimeInterval = 0
+    private(set) var fallbackDwellElapsed: TimeInterval = 0
+    private(set) var fallbackDwellLimit: TimeInterval?
 
     init(configuration: PeripheralBehaviorConfiguration = PeripheralBehaviorConfiguration()) {
         self.configuration = configuration
@@ -82,6 +86,7 @@ struct PeripheralBehaviorEngine: Sendable {
     ) -> PeripheralBehaviorStep {
         let safeElapsed = max(0, elapsed)
         updatePointerInterest(pointer: pointer, elapsed: safeElapsed, terrain: terrain)
+        updateFallbackDwell(elapsed: safeElapsed, terrain: terrain, decision: decision)
 
         switch activity {
         case .unplaced:
@@ -97,6 +102,19 @@ struct PeripheralBehaviorEngine: Sendable {
                 return recover(from: origin, petSize: petSize, terrain: terrain, decision: decision)
             }
             let anchored = CGPoint(x: surface.clampedX(origin.x), y: surface.y)
+
+            // A screen edge is a refuge, not a home: once the dwell allowance
+            // runs out, any rest — nap included — is cut short in favour of a
+            // nosier perch the moment a window top is available.
+            if
+                surface.kind == .screenEdge,
+                let limit = fallbackDwellLimit,
+                fallbackDwellElapsed >= limit,
+                let perch = nearestWindowSurface(in: terrain, near: anchored)
+            {
+                return beginJump(from: anchored, to: perch, targetX: perch.clampedX(anchored.x))
+            }
+
             let nextRemaining = remaining - safeElapsed
             guard nextRemaining <= 0 else {
                 activity = .resting(surfaceID: surfaceID, remaining: nextRemaining, duration: duration)
@@ -372,6 +390,46 @@ struct PeripheralBehaviorEngine: Sendable {
         } else {
             pointerInterestSurfaceID = candidate
             pointerInterestElapsed = candidate == nil ? 0 : elapsed
+        }
+    }
+
+    private mutating func updateFallbackDwell(
+        elapsed: TimeInterval,
+        terrain: TerrainSnapshot,
+        decision: PeripheralDecisionValues
+    ) {
+        let anchoredKind = anchoredSurfaceID.flatMap { terrain.surface(id: $0) }?.kind
+        guard anchoredKind == .screenEdge else {
+            fallbackDwellElapsed = 0
+            fallbackDwellLimit = nil
+            return
+        }
+        if fallbackDwellLimit == nil {
+            fallbackDwellLimit = configuration.minimumFallbackDwellDuration
+                + (configuration.maximumFallbackDwellDuration - configuration.minimumFallbackDwellDuration)
+                * TimeInterval(normalized(decision.idleDuration))
+        }
+        fallbackDwellElapsed += elapsed
+    }
+
+    private var anchoredSurfaceID: String? {
+        switch activity {
+        case .unplaced:
+            nil
+        case let .resting(surfaceID, _, _):
+            surfaceID
+        case let .flourishing(surfaceID, _):
+            surfaceID
+        case let .strolling(surfaceID, _):
+            surfaceID
+        case let .jumping(journey):
+            journey.targetSurfaceID
+        }
+    }
+
+    private func nearestWindowSurface(in terrain: TerrainSnapshot, near point: CGPoint) -> TerrainSurface? {
+        terrain.windowSurfaces.min {
+            distanceSquared(from: point, to: $0) < distanceSquared(from: point, to: $1)
         }
     }
 
